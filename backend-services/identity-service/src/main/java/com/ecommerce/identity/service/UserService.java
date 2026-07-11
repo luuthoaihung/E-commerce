@@ -3,8 +3,6 @@ package com.ecommerce.identity.service;
 import com.ecommerce.identity.dto.request.AuthenticationRequest;
 import com.ecommerce.identity.dto.response.AuthenticationResponse;
 import com.ecommerce.identity.entity.User;
-import com.ecommerce.identity.exception.AppException;
-import com.ecommerce.identity.exception.ErrorCode;
 import com.ecommerce.identity.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,12 +13,19 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
+
+import jakarta.transaction.Transactional;
+
 import com.ecommerce.identity.dto.request.IntrospectRequest;
+import com.ecommerce.identity.dto.request.UserCreationRequest;
 import com.ecommerce.identity.dto.response.IntrospectResponse;
 import java.text.ParseException;
+import com.ecommerce.identity.repository.RoleRepository;
+import com.ecommerce.identity.entity.Role;
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -29,24 +34,35 @@ public class UserService {
     private String SIGNER_KEY;
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder; // Lấy bộ mã hóa đã cấu hình bên SecurityConfig
+    private final RoleRepository roleRepository;
 
-    public String register(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            // Thay vì return string, ném thẳng lỗi ra luôn!
-            throw new AppException(ErrorCode.USER_EXISTED); 
-        }
-
-        if (userRepository.existsByEmail(user.getEmail())) {
-            // Ném lỗi trùng email
-            throw new AppException(ErrorCode.EMAIL_EXISTED);
-        }
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-        return "Đăng ký thành công tài khoản: " + user.getUsername();
-    }
+    public String register(UserCreationRequest request) { // 🌟 Sửa tham số truyền vào ở đây
     
+    // 1. Nên bổ sung check trùng username trước khi lưu cho an toàn
+    if (userRepository.existsByUsername(request.getUsername())) {
+        throw new RuntimeException("Error: Username đã tồn tại!");
+    }
 
+    // 2. Chuyển đổi dữ liệu từ Request DTO sang Entity User bằng Builder
+    User user = User.builder()
+            .username(request.getUsername())
+            .password(passwordEncoder.encode(request.getPassword())) // Mã hóa mật khẩu luôn ở đây
+            .email(request.getEmail())
+            .fullName(request.getFullName())
+            .build();
+
+    // 3. Logic xử lý Role mặc định (Giữ nguyên của bạn)
+    if (user.getRoles() == null || user.getRoles().isEmpty()) {
+        Role defaultRole = roleRepository.findById("USER")
+                .orElseThrow(() -> new RuntimeException("Error: Role USER not found."));
+        user.setRoles(Set.of(defaultRole));
+    }
+
+    userRepository.save(user);
+    return "User registered successfully!";
+}
+    
+    @Transactional
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         var user = userRepository.findByUsername(request.getUsername())
                 .orElse(null); 
@@ -82,6 +98,7 @@ public class UserService {
                         Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli() // Token có hiệu lực trong 1 tiếng
                 ))
                 .claim("userId", user.getId()) // Lưu thêm ID của user nếu cần
+                .claim("scope", buildScope(user))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
@@ -126,4 +143,13 @@ public class UserService {
                     .build();
         }
     }
+    private String buildScope(User user) {
+    java.util.StringJoiner stringJoiner = new java.util.StringJoiner(" ");
+    if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+        user.getRoles().forEach(role -> {
+            stringJoiner.add( role.getName());
+        });
+    }
+    return stringJoiner.toString();
+}
 }

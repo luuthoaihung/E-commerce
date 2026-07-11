@@ -1,9 +1,23 @@
 package com.ecommerce.identity.entity;
+import java.time.LocalDateTime;
+import java.util.Set;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@Builder
 @Table(name = "users") // Khớp với tên bảng trong SQL Server
+@Getter
+@Setter
+@NoArgsConstructor  // 🌟 THÊM DÒNG NÀY: Tạo constructor không tham số cho Hibernate
+@AllArgsConstructor // 🌟 THÊM DÒNG NÀY: Tạo constructor đầy đủ tham số để @Builder không bị lỗi
 public class User {
 
     @Id
@@ -21,7 +35,16 @@ public class User {
 
     @Column(name = "full_name")
     private String fullName;
-
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_name")
+    )
+    private Set<Role> roles;
+    @Column(name = "created_at", updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
     // --- GETTER & SETTER (Bắt buộc phải có để Spring Boot đọc/ghi dữ liệu) ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -37,4 +60,13 @@ public class User {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public Set<Role> getRoles() {
+    return this.roles;
+    }
+    public void setRoles(Set<Role> roles) {
+    this.roles = roles;
+    }
+    
+
 }

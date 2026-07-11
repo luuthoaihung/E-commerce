@@ -10,7 +10,9 @@ public class GlobalExceptionHandler {
 
     // 1. Hứng lỗi hệ thống chung chung (Lỗi 500, NullPointer, sập DB...)
     @ExceptionHandler(value = Exception.class)
+    
     public ResponseEntity<ApiResponse<?>> handlingRuntimeException(Exception exception) {
+        exception.printStackTrace();
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
                 .message(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage())
