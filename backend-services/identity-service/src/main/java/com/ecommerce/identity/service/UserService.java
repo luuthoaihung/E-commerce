@@ -5,6 +5,8 @@ import com.ecommerce.identity.dto.response.AuthenticationResponse;
 import com.ecommerce.identity.entity.User;
 import com.ecommerce.identity.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.nimbusds.jose.*;
@@ -14,15 +16,19 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Value;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
-
-import jakarta.transaction.Transactional;
-
+import org.springframework.transaction.annotation.Transactional;
+import com.ecommerce.identity.dto.response.UserResponse;
+import java.util.List;
 import com.ecommerce.identity.dto.request.IntrospectRequest;
 import com.ecommerce.identity.dto.request.UserCreationRequest;
 import com.ecommerce.identity.dto.response.IntrospectResponse;
+
+
 import java.text.ParseException;
 import com.ecommerce.identity.repository.RoleRepository;
 import com.ecommerce.identity.entity.Role;
@@ -148,8 +154,59 @@ public class UserService {
     if (user.getRoles() != null && !user.getRoles().isEmpty()) {
         user.getRoles().forEach(role -> {
             stringJoiner.add( role.getName());
-        });
+            });
+        }
+        return stringJoiner.toString();
     }
-    return stringJoiner.toString();
-}
+
+    @Transactional(readOnly = true)
+public List<UserResponse> getAllUsers() {
+    return userRepository.findAll().stream()
+            .map(user -> {
+                UserResponse response = new UserResponse();
+                response.setId(user.getId());
+                response.setUsername(user.getUsername());
+                response.setEmail(user.getEmail());
+                
+                // Bọc lót chống null fullName luôn cho an toàn
+                response.setFullName(user.getFullName() != null ? user.getFullName() : "Chưa cập nhật");
+                
+                // 🌟 ĐOẠN SỬA LỖI: Dịch Set<Role> thành Set<String> trước khi set vào response
+                if (user.getRoles() != null) {
+                    Set<String> roleNames = user.getRoles().stream()
+                            .map(role -> role.getName()) // Lấy ra chuỗi Name (ví dụ: "ADMIN", "USER")
+                            .collect(Collectors.toSet());
+                    response.setRoles(roleNames); // Truyền Set<String> vào đây là khít khịt!
+                }
+                
+                return response;
+            })
+            .toList();
+    }
+    @Transactional(readOnly = true)
+    public UserResponse getMyInfo() {
+        // 1. Lấy thông tin username của người đang đăng nhập từ trong Token
+        var context = SecurityContextHolder.getContext();
+        String username = context.getAuthentication().getName();
+
+        // 2. Tìm User trong database theo username đó
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại")); // Bạn có thể đổi thành AppException của bạn nếu muốn
+
+        // 3. Mapping dữ liệu sang UserResponse để trả về
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setFullName(user.getFullName() != null ? user.getFullName() : "Chưa cập nhật");
+        
+        if (user.getRoles() != null) {
+            Set<String> roleNames = user.getRoles().stream()
+                    .map(role -> role.getName())
+                    .collect(Collectors.toSet());
+            response.setRoles(roleNames);
+        }
+
+        return response;
+    }
 }

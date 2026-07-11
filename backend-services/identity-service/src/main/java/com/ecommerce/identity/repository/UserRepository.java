@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, String> {
     // Tự động sinh hàm kiểm tra xem tài khoản hoặc email đã tồn tại hay chưa
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);

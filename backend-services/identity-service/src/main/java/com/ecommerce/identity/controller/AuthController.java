@@ -7,6 +7,8 @@ import com.ecommerce.identity.dto.response.ApiResponse;
 import com.ecommerce.identity.dto.response.AuthenticationResponse;
 import com.ecommerce.identity.dto.response.IntrospectResponse;
 import com.ecommerce.identity.service.UserService;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +20,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ApiResponse<String> register(@RequestBody UserCreationRequest request) {
+    public ApiResponse<String> register(@Valid @RequestBody  UserCreationRequest request) {
         String result = userService.register(request);
         return ApiResponse.<String>builder()
                 .result(result)

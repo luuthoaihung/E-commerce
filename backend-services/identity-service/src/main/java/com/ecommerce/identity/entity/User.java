@@ -21,8 +21,8 @@ import lombok.Setter;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Tự động tăng ID
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -33,7 +33,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", columnDefinition = "NVARCHAR(255)")
     private String fullName;
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -46,8 +46,8 @@ public class User {
     @CreationTimestamp
     private LocalDateTime createdAt;
     // --- GETTER & SETTER (Bắt buộc phải có để Spring Boot đọc/ghi dữ liệu) ---
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
