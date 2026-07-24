@@ -5,12 +5,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.HttpMethod;
+
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -35,6 +36,8 @@ public class SecurityConfig {
             "/api/auth/register",
             "/api/auth/introspect",
             "/api/auth/logout",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password"
             
     };
     @Bean
@@ -47,7 +50,7 @@ public class SecurityConfig {
     }
 
     @Value("${jwt.signerKey}")
-    private String SIGNER_KEY;
+    private String SIGNING_KEY;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity, JwtDecoder jwtDecoder) throws Exception {
@@ -84,33 +87,30 @@ public class SecurityConfig {
 
     // Hàm giải mã Token sử dụng thuật toán mã hóa HS256 và Signer Key của tụi mình
     @Bean
-//  Truyền @Lazy UserService trực tiếp vào làm tham số của hàm
     public JwtDecoder jwtDecoder(@Lazy AuthService authService) {
-        return token -> {
-            // 🌟 SỬA: Nếu không có token, không ném lỗi ngay mà trả về null hoặc xử lý tĩnh
-            // Điều này giúp Spring Security không bị chặn cứng khi gọi các API công khai (như Swagger)
-            if (token == null || token.isBlank()) {
-                throw new JwtException("Token is missing"); 
-            }
+        SecretKeySpec secretKeySpec = new SecretKeySpec(SIGNING_KEY.getBytes(), "HS256");
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
 
+        return token -> {
             try {
+                // 1. Phải giải mã và xác thực chữ ký/hạn sử dụng của token TRƯỚC
+                Jwt decodedJwt = jwtDecoder.decode(token);
+
+                // 2. (Tuỳ chọn) Sau khi decode thành công, nếu bạn muốn check xem token có bị thu hồi hay không thì gọi introspect ở đây
                 var response = authService.introspect(
                         IntrospectRequest.builder().token(token).build()
                 );
-                
+
                 if (!response.isValid()) {
                     throw new JwtException("Token không hợp lệ hoặc đã đăng xuất!");
                 }
+
+                return decodedJwt; // Trả về JWT đã giải mã thành công cho Spring Security
             } catch (Exception e) {
-                // Thay vì ném lỗi làm sập toàn bộ request, ta log lại
                 throw new JwtException(e.getMessage());
             }
-
-            SecretKeySpec secretKeySpec = new SecretKeySpec(SIGNER_KEY.getBytes(), "HS256");
-            return NimbusJwtDecoder.withSecretKey(secretKeySpec)
-                    .macAlgorithm(MacAlgorithm.HS256)
-                    .build()
-                    .decode(token);
         };
     }
 

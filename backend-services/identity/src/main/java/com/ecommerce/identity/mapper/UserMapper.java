@@ -9,9 +9,6 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    @SuppressWarnings("unused") // Thêm dòng này để tắt cảnh báo
     ProfileResponse toProfileResponse(User user);
-
-    @SuppressWarnings("unused") // Thêm dòng này để tắt cảnh báo
     void updateUser(@MappingTarget User user, ProfileRequest request);
 }

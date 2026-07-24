@@ -17,6 +17,18 @@ public enum ErrorCode {
     UNAUTHENTICATED(1007, "Tài khoản hoặc mật khẩu không chính xác"),
     UNAUTHORIZED(1008, "Bạn không có quyền truy cập vào chức năng này"),
     INVALID_TOKEN(1009, "Token không hợp lệ hoặc đã đăng xuất", HttpStatus.UNAUTHORIZED),
+    INVALID_PASSWORD(1010, "Mật khẩu cũ không chính xác", HttpStatus.BAD_REQUEST),
+    INVALID_OTP(1011, "Mã OTP không chính xác", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED(1012, "Mã OTP đã hết hạn", HttpStatus.BAD_REQUEST),
+    CATEGORY_EXISTED(1013, "Danh mục đã tồn tại"),
+    CATEGORY_NOT_FOUND(1014, "Không tìm thấy danh mục", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_FOUND(1015, "Không tìm thấy sản phẩm", HttpStatus.BAD_REQUEST),
+    CART_NOT_FOUND(1016, "Không tìm thấy giỏ hàng", HttpStatus.NOT_FOUND),
+    CART_ITEM_NOT_FOUND(1017, "Không tìm thấy sản phẩm trong giỏ hàng", HttpStatus.NOT_FOUND),
+    OUT_OF_STOCK(10018, "Sản phẩm không đủ số lượng trong kho", HttpStatus.BAD_REQUEST),
+    CART_EMPTY(1019, "Giỏ hàng của bạn đang trống", HttpStatus.BAD_REQUEST),
+    ORDER_NOT_FOUND(1020, "Không tìm thấy đơn hàng", HttpStatus.BAD_REQUEST),
+    CANNOT_CANCEL_ORDER(1021, "Không thể hủy đơn hàng này", HttpStatus.BAD_REQUEST),
     ;
 
     

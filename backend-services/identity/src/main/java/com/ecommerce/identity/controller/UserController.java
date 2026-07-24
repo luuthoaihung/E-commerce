@@ -1,41 +1,52 @@
 package com.ecommerce.identity.controller;
 
+import com.ecommerce.identity.dto.request.ChangePasswordRequest;
+import com.ecommerce.identity.dto.request.ProfileRequest;
 import com.ecommerce.identity.dto.response.ApiResponse;
-import com.ecommerce.identity.dto.response.UserResponse; // 🌟 Import DTO mới
-import com.ecommerce.identity.service.UserService;       // 🌟 Import Service để gọi logic
-import lombok.RequiredArgsConstructor;                   // 🌟 Thêm Lombok để tự động kết nối Service
+import com.ecommerce.identity.dto.response.ProfileResponse;
+import com.ecommerce.identity.dto.response.UserResponse;
+import com.ecommerce.identity.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.RequestBody;
+import lombok.RequiredArgsConstructor;                   
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List; // 🌟 Import thư viện List của Java
+import java.util.List; 
 
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor // 🌟 Injection tự động: Giúp nạp UserService vào mà không cần dùng @Autowired
+@RequiredArgsConstructor 
 public class UserController {
 
-    private final UserService userService; // 🌟 Khai báo Service để sử dụng dưới hàm getAllUsers
+    private final UserService userService; 
 
-    @GetMapping("/my-info") // 🌟 Đường dẫn đầy đủ sẽ là: GET http://localhost:8081/api/users/my-info
+    @GetMapping("/my-info") 
     public ApiResponse<UserResponse> getMyInfo() {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getMyInfo())
                 .build();
     }
-    // 1. API lấy danh sách User (Tụi mình vừa làm xong)
-    @GetMapping // 🌟 Không viết thêm gì ở đây -> Đường dẫn chuẩn sẽ là: /api/users
-    @PreAuthorize("hasRole('ADMIN')") // 🔒 Chỉ có ADMIN mới được gọi
+    // API cập nhật thông tin cá nhân
+    @PutMapping("/edit-profile")
+    public ApiResponse<ProfileResponse> updateProfile(@RequestBody ProfileRequest request) {
+        return ApiResponse.<ProfileResponse>builder()
+                .result(userService.updateProfile(request))
+                .build();
+    }
+    
+    @GetMapping 
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<UserResponse>> getAllUsers() {
         return ApiResponse.<List<UserResponse>>builder()
                 .result(userService.getAllUsers())
                 .build();
     }
 
-
-    // 2. API mật mã tĩnh cũ của bạn (giữ nguyên để test)
-    @GetMapping("/secret-data") // Đường dẫn phụ -> /api/users/secret-data
+    @GetMapping("/secret-data") 
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<String> getSecretData() {
         return ApiResponse.<String>builder()
@@ -43,4 +54,13 @@ public class UserController {
                 .result("Đây là dữ liệu tối mật từ Backend: 👑 Mã kho báu 12345")
                 .build();
     }
+    
+    @PutMapping("/change-password")
+    public ApiResponse<String> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return ApiResponse.<String>builder()
+                .result("Đổi mật khẩu thành công!")
+                .build();
+    }
+    
 }

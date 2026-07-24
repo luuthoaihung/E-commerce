@@ -1,5 +1,6 @@
 package com.ecommerce.identity.dto.request;
 
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -8,7 +9,9 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProfileRequest {
-    String email;
-    String fullName;
+public class ChangePasswordRequest {
+    String oldPassword;
+
+    @Size(min = 6, message = "INVALID_PASSWORD")
+    String newPassword;
 }
