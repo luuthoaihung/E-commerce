@@ -27,14 +27,14 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PreAuthorize("hasRole('ADMIN')") // 🌟 Chỉ Admin mới được tạo
-    @PostMapping
+    @PostMapping("/add")
     public ApiResponse<Category> createCategory(@RequestBody @Valid CategoryRequest request) {
         return ApiResponse.<Category>builder()
                 .result(categoryService.createCategory(request))
                 .build();
     }
 
-    @GetMapping // Ai cũng xem được (User và Admin)
+    @GetMapping("/list") // Ai cũng xem được (User và Admin)
     public ApiResponse<List<Category>> getAllCategories() {
         return ApiResponse.<List<Category>>builder()
                 .result(categoryService.getAllCategories())
@@ -42,7 +42,7 @@ public class CategoryController {
     }
 
     @PreAuthorize("hasRole('ADMIN')") // 🌟 Chỉ Admin mới được sửa
-    @PutMapping("/{id}")
+    @PutMapping("edit/{id}")
     public ApiResponse<Category> updateCategory(@PathVariable String id, @RequestBody @Valid CategoryRequest request) {
         return ApiResponse.<Category>builder()
                 .result(categoryService.updateCategory(id, request))
@@ -50,7 +50,7 @@ public class CategoryController {
     }
 
     @PreAuthorize("hasRole('ADMIN')") // 🌟 Chỉ Admin mới được xóa
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ApiResponse<String> deleteCategory(@PathVariable String id) {
         categoryService.deleteCategory(id);
         return ApiResponse.<String>builder()

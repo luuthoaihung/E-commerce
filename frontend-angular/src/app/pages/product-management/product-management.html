@@ -1,0 +1,63 @@
+<div class="product-management-container">
+  <!-- Header trang -->
+  <div class="page-header">
+    <h2>Quản lý Sản phẩm</h2>
+    <a routerLink="/products/add" class="btn-add">+ Thêm sản phẩm mới</a>
+  </div>
+  
+
+  <!-- Thông báo đang tải -->
+  <div class="loading-state" *ngIf="isLoading">Đang tải dữ liệu, vui lòng đợi...</div>
+
+  <!-- Bảng hiển thị dữ liệu -->
+  <div class="table-card" *ngIf="!isLoading">
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th style="width: 100px;">Ảnh</th>
+          <th>Tên sản phẩm</th>
+          <th>Giá bán</th>
+          <th>Tồn kho</th>
+          <th style="text-align: center; width: 140px;">Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of products">
+          <td>
+            <div class="img-wrapper">
+              <img [src]="p.imageUrl || 'https://via.placeholder.com/50'" alt="product">
+            </div>
+          </td>
+          <td>
+            <span class="product-name">{{ p.name }}</span>
+          </td>
+          <td>
+            <span class="product-price">{{ p.price | number }} đ</span>
+          </td>
+          <td>
+            <span class="stock-badge" [class.out-of-stock]="p.stockQuantity === 0">
+              {{ p.stockQuantity }}
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <div class="action-buttons">
+              <button class="btn-action btn-edit-modern" (click)="editProduct(p.id)" title="Chỉnh sửa">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>Sửa</span>
+              </button>
+              <button class="btn-action btn-delete-modern" (click)="deleteProduct(p.id)" title="Xóa">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                <span>Xóa</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+        
+        <!-- Trạng thái khi không có dữ liệu -->
+        <tr *ngIf="products.length === 0">
+          <td colspan="5" class="empty-data">Không có sản phẩm nào trong hệ thống.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

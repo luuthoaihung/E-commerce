@@ -1,0 +1,72 @@
+<div class="product-container">
+  <div class="form-card">
+    <h2>Thêm sản phẩm mới</h2>
+
+    <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
+      <!-- Tên sản phẩm -->
+      <div class="form-group">
+        <label for="name">Tên sản phẩm</label>
+        <input 
+          id="name" 
+          type="text" 
+          formControlName="name" 
+          placeholder="Ví dụ: Samsung Galaxy S26 Ultra..." 
+        />
+      </div>
+
+      <!-- Giá và Tồn kho (Cùng một hàng cho gọn) -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="price">Giá bán (VNĐ)</label>
+          <input 
+            id="price" 
+            type="number" 
+            formControlName="price" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="stock">Tồn kho</label>
+          <input 
+            id="stock" 
+            type="number" 
+            formControlName="stockQuantity" 
+          />
+        </div>
+      </div>
+
+      <!-- Danh mục -->
+      <div class="form-group">
+        <label for="category">Danh mục</label>
+        <select id="category" formControlName="categoryId">
+          <option value="" disabled selected>Chọn danh mục sản phẩm</option>
+          <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+        </select>
+      </div>
+
+      <!-- Ảnh sản phẩm -->
+      <div class="form-group">
+        <label>Ảnh sản phẩm</label>
+        <div class="file-upload-container">
+          <label class="btn-choose-file">
+            Chọn tệp
+            <input type="file" (change)="onFileSelected($event)" accept="image/*" hidden />
+          </label>
+          <span class="file-name">{{ selectedFile ? selectedFile.name : 'Không có tệp nào được chọn' }}</span>
+        </div>
+
+        <!-- Khung xem trước ảnh -->
+        <div *ngIf="imagePreview" class="preview-wrapper">
+          <img [src]="imagePreview" alt="Preview" />
+          <button type="button" class="btn-remove-img" (click)="removeImage()">×</button>
+        </div>
+      </div>
+
+      <!-- Nút hành động -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" (click)="onCancel()">Hủy</button>
+        <button type="submit" class="btn btn-submit" [disabled]="productForm.invalid">Thêm sản phẩm</button>
+      </div>
+    </form>
+  </div>
+</div>

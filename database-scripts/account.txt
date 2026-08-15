@@ -1,0 +1,5 @@
+ADMIN
+tk: admin
+mk: admin123
+USER
+MK: khachhang123

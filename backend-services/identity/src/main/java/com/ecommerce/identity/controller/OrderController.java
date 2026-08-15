@@ -70,5 +70,14 @@ public class OrderController {
         }
         
     }
+    // API 3: Đặt hàng (Thanh toán khi nhận hàng - COD)
+    @PostMapping
+    public ApiResponse<OrderResponse> createOrder() {
+        OrderResponse orderResponse = orderService.createOrder();
+        return ApiResponse.<OrderResponse>builder()
+                .result(orderResponse)
+                .message("Đặt hàng thành công")
+                .build();
+    }
     
 }

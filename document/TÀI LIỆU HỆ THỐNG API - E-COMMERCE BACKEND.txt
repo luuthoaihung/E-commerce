@@ -1,0 +1,61 @@
+# TÀI LIỆU HỆ THỐNG API - E-COMMERCE BACKEND
+
+* Base URL: http://localhost:8081
+* Authentication: Sử dụng Bearer Token cho các API yêu cầu quyền hạn (Authorization: Bearer <JWT_TOKEN>)
+* Response Format chung:
+  {
+    "code": 1000,
+    "message": "Thành công",
+    "result": { ... }
+  }
+
+---
+
+## 1. Auth Controller (Xác thực)
+* POST /api/auth/register: Đăng ký tài khoản mới.
+* POST /api/auth/login: Đăng nhập và nhận JWT token.
+* POST /api/auth/logout: Đăng xuất.
+* POST /api/auth/refresh: Cấp mới token.
+* POST /api/auth/forgot-password: Quên mật khẩu.
+* POST /api/auth/reset-password: Đặt lại mật khẩu.
+
+## 2. User Controller (Người dùng)
+* GET /api/users/my-info: Lấy thông tin cá nhân.
+* PUT /api/users/edit-profile: Cập nhật thông tin.
+* PUT /api/users/change-password: Đổi mật khẩu.
+* GET /api/users: Lấy danh sách người dùng (Admin).
+* GET /api/users/secret-data: Dữ liệu bảo mật.
+
+## 3. Product Controller (Sản phẩm)
+* GET /products: Lấy danh sách sản phẩm (hỗ trợ search/filter).
+* GET /products/{id}: Chi tiết sản phẩm.
+* POST /products: Tạo mới sản phẩm.
+* PUT /products/{id}: Cập nhật sản phẩm (tự động dọn dẹp ảnh cũ S3).
+* DELETE /products/{id}: Xóa mềm sản phẩm (Soft Delete).
+
+## 4. Category Controller (Danh mục)
+* GET /categories: Danh sách danh mục.
+* POST /categories: Tạo mới.
+* PUT /categories/{id}: Cập nhật.
+* DELETE /categories/{id}: Xóa.
+
+## 5. File Controller (Upload)
+* POST /files/upload: Upload ảnh lên S3 (tự động nén thumbnail).
+
+## 6. Cart Controller (Giỏ hàng)
+* GET /cart: Lấy giỏ hàng.
+* POST /cart/items: Thêm sản phẩm.
+* PUT /cart/items/{id}: Cập nhật số lượng.
+* DELETE /cart/items/{id}: Xóa sản phẩm.
+
+## 7. Order Controller (Đơn hàng người dùng)
+* POST /orders: Tạo đơn hàng mới.
+* GET /orders: Danh sách đơn hàng cá nhân.
+* GET /orders/{id}: Chi tiết đơn hàng.
+* PUT /orders/{id}/cancel: Hủy đơn hàng.
+* POST /orders/{id}/payment/vnPay: Thanh toán VNPay.
+* GET /orders/vnpay-return: Callback VNPay.
+
+## 8. Admin Order Controller (Quản lý đơn hàng)
+* GET /admin/orders: Xem tất cả đơn hàng.
+* PUT /admin/orders/{id}/status: Cập nhật trạng thái đơn hàng.

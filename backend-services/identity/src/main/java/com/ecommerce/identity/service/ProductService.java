@@ -23,6 +23,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final S3Service s3Service;
 
     // 🌟 Thêm hàm Tạo mới sản phẩm
     public ProductResponse createProduct(ProductRequest request) {
@@ -77,22 +78,34 @@ public class ProductService {
     }
 
     public ProductResponse updateProduct(String id, ProductRequest request) {
-        // Tìm sản phẩm cần cập nhật
+        // 1. Tìm sản phẩm cần cập nhật
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // Tìm category mới
+        // 2. Tìm category mới
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
 
-        // Cập nhật thông tin
+        // 3. Xử lý dọn dẹp ảnh cũ trên S3 nếu có thay đổi ảnh
+        String oldImageUrl = product.getImageUrl();
+        String newImageUrl = request.getImageUrl();
+
+        if (newImageUrl != null && !newImageUrl.equals(oldImageUrl)) {
+            // Nếu sản phẩm cũ có ảnh và khác ảnh mới -> tiến hành xóa ảnh cũ trên S3
+            if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+                s3Service.deleteFile(oldImageUrl);
+            }
+            product.setImageUrl(newImageUrl);
+        }
+
+        // 4. Cập nhật các thông tin còn lại
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
-        product.setImageUrl(request.getImageUrl());
         product.setCategory(category);
 
+        // 5. Lưu xuống database
         Product updatedProduct = productRepository.save(product);
         return productMapper.toProductResponse(updatedProduct);
     }
@@ -100,6 +113,7 @@ public class ProductService {
     public void deleteProduct(String id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-        productRepository.delete(product);
+        product.setDeleted(true);
+        productRepository.save(product);
     }
 }

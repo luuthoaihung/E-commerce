@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -37,7 +37,8 @@ public class SecurityConfig {
             "/api/auth/introspect",
             "/api/auth/logout",
             "/api/auth/forgot-password",
-            "/api/auth/reset-password"
+            "/api/auth/reset-password",
+            
             
     };
     @Bean
@@ -52,21 +53,23 @@ public class SecurityConfig {
     @Value("${jwt.signerKey}")
     private String SIGNING_KEY;
 
-    @Bean
+    
+   @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity, JwtDecoder jwtDecoder) throws Exception {
-        httpSecurity.authorizeHttpRequests(request ->
-                request.requestMatchers( PUBLIC_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated());
+        httpSecurity
+            .cors(Customizer.withDefaults()) // <-- BẮT BUỘC PHẢI THÊM DÒNG NÀY ĐỂ CHO PHÉP CORS QUA SECURITY
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(request ->
+                request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .anyRequest().authenticated()
+            );
 
-        // 🌟 Cập nhật lại dòng này để ăn bộ converter phía dưới
         httpSecurity.oauth2ResourceServer(oauth2 ->
-                oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder)
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-                    );
-                        
+            oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder)
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                    .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+        );
 
-        httpSecurity.csrf(csrf -> csrf.disable());
         return httpSecurity.build();
     }
 

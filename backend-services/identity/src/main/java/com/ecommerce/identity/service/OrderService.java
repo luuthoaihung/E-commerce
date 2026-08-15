@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -50,10 +51,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder() {
-        // 1. Lấy user đang đăng nhập
         User user = getCurrentUser();
-
-        // 2. Lấy giỏ hàng của user
         Cart cart = cartRepository.findByUser(user)
                 .orElseThrow(() -> new AppException(ErrorCode.CART_EMPTY));
 
@@ -61,68 +59,73 @@ public class OrderService {
             throw new AppException(ErrorCode.CART_EMPTY);
         }
 
-        // 3. Khởi tạo Order
+        // 1. Khởi tạo đơn hàng với giá trị mặc định chuẩn
         Order order = Order.builder()
                 .user(user)
                 .totalAmount(BigDecimal.ZERO)
+                .status("PENDING") // Mặc định là PENDING
+                .orderDate(LocalDateTime.now()) // Gán ngày hiện tại
                 .build();
 
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        // 4. Duyệt qua từng sản phẩm trong giỏ hàng để kiểm tra tồn kho và tạo OrderItem
         for (CartItem cartItem : cart.getCartItems()) {
-            Product product = cartItem.getProduct();
+            // 2. Dùng Lock để tránh xung đột tồn kho (Race Condition)
+            Product product = productRepository.findByIdWithLock(cartItem.getProduct().getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
-            // Kiểm tra số lượng tồn kho
             if (product.getStockQuantity() < cartItem.getQuantity()) {
                 throw new AppException(ErrorCode.OUT_OF_STOCK);
             }
 
-            // Trừ số lượng kho
             product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
             productRepository.save(product);
 
-            // Tính tiền item
             BigDecimal itemPrice = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             totalAmount = totalAmount.add(itemPrice);
 
-            OrderItem orderItem = OrderItem.builder()
+            orderItems.add(OrderItem.builder()
                     .order(order)
                     .product(product)
                     .quantity(cartItem.getQuantity())
                     .price(product.getPrice())
-                    .build();
-
-            orderItems.add(orderItem);
+                    .build());
         }
 
         order.setTotalAmount(totalAmount);
         order.setOrderItems(orderItems);
-
-        // Lưu Order vào database
         Order savedOrder = orderRepository.save(order);
 
-        // 5. Xóa sạch giỏ hàng sau khi đặt hàng thành công
         cartItemRepository.deleteAll(cart.getCartItems());
+        cart.getCartItems().clear(); // Clear danh sách trong bộ nhớ tạm của entity
+        cartRepository.save(cart);
 
-        // 6. Map dữ liệu trả về DTO
-        List<OrderResponse.OrderItemResponse> itemResponses = savedOrder.getOrderItems().stream()
-                .map(item -> OrderResponse.OrderItemResponse.builder()
+        return mapToOrderResponse(savedOrder);
+    }
+
+    private OrderResponse mapToOrderResponse(Order order) {
+        return OrderResponse.builder()
+                .id(order.getId())
+                .totalAmount(order.getTotalAmount())
+                .status(order.getStatus())
+                .orderDate(order.getOrderDate())
+                .orderItems(order.getOrderItems().stream().map(item -> OrderResponse.OrderItemResponse.builder()
                         .id(item.getId())
                         .product(productMapper.toProductResponse(item.getProduct()))
                         .quantity(item.getQuantity())
                         .price(item.getPrice())
-                        .build())
-                .toList();
-
-        return OrderResponse.builder()
-                .id(savedOrder.getId())
-                .totalAmount(savedOrder.getTotalAmount())
-                .status(savedOrder.getStatus())
-                .orderDate(savedOrder.getOrderDate())
-                .orderItems(itemResponses)
+                        .build()).toList())
                 .build();
+    }
+
+    private void restoreStock(List<OrderItem> items) {
+        for (OrderItem item : items) {
+            Product product = productRepository.findById(item.getProduct().getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            productRepository.save(product);
+        }
     }
 
     // 1. Xem tất cả đơn hàng của user đang đăng nhập
@@ -183,51 +186,24 @@ public class OrderService {
     public OrderResponse cancelOrder(String orderId) {
         User user = getCurrentUser();
         
-        // 1. Tìm đơn hàng theo ID
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-        // 2. Kiểm tra bảo mật (Đơn hàng phải thuộc về user hiện tại)
         if (!order.getUser().getId().equals(user.getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        // 3. Chỉ cho phép hủy khi đơn hàng đang ở trạng thái PENDING
         if (!"PENDING".equalsIgnoreCase(order.getStatus())) {
-            throw new AppException(ErrorCode.CANNOT_CANCEL_ORDER); // Hoặc mã lỗi tùy chỉnh
+            throw new AppException(ErrorCode.CANNOT_CANCEL_ORDER);
         }
 
-        // 4. Cập nhật trạng thái đơn hàng thành CANCELLED
         order.setStatus("CANCELLED");
 
-        // 5. Hoàn lại số lượng tồn kho cho từng sản phẩm trong đơn
-        for (OrderItem item : order.getOrderItems()) {
-            Product product = item.getProduct();
-            if (product != null) {
-                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
-                productRepository.save(product);
-            }
-        }
+        // Gọi hàm restoreStock để hoàn lại tồn kho
+        restoreStock(order.getOrderItems());
 
         Order savedOrder = orderRepository.save(order);
-
-        // 6. Map dữ liệu trả về DTO
-        List<OrderResponse.OrderItemResponse> itemResponses = savedOrder.getOrderItems().stream()
-                .map(item -> OrderResponse.OrderItemResponse.builder()
-                        .id(item.getId())
-                        .product(productMapper.toProductResponse(item.getProduct()))
-                        .quantity(item.getQuantity())
-                        .price(item.getPrice())
-                        .build())
-                .toList();
-
-        return OrderResponse.builder()
-                .id(savedOrder.getId())
-                .totalAmount(savedOrder.getTotalAmount())
-                .status(savedOrder.getStatus())
-                .orderDate(savedOrder.getOrderDate())
-                .orderItems(itemResponses)
-                .build();
+        return mapToOrderResponse(savedOrder);
     }
     // 1. Admin lấy toàn bộ danh sách đơn hàng của tất cả khách hàng
     public List<OrderResponse> getAllOrders() {
@@ -258,36 +234,14 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-        // Nếu đơn hàng chuyển sang trạng thái CANCELLED từ phía Admin, cũng cần hoàn tồn kho
+        // Nếu Admin đổi trạng thái sang CANCELLED và trước đó chưa bị hủy
         if ("CANCELLED".equalsIgnoreCase(newStatus) && !"CANCELLED".equalsIgnoreCase(order.getStatus())) {
-            for (OrderItem item : order.getOrderItems()) {
-                Product product = item.getProduct();
-                if (product != null) {
-                    product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
-                    productRepository.save(product);
-                }
-            }
+            restoreStock(order.getOrderItems());
         }
 
         order.setStatus(newStatus.toUpperCase());
         Order updatedOrder = orderRepository.save(order);
-
-        List<OrderResponse.OrderItemResponse> itemResponses = updatedOrder.getOrderItems().stream()
-                .map(item -> OrderResponse.OrderItemResponse.builder()
-                        .id(item.getId())
-                        .product(productMapper.toProductResponse(item.getProduct()))
-                        .quantity(item.getQuantity())
-                        .price(item.getPrice())
-                        .build())
-                .toList();
-
-        return OrderResponse.builder()
-                .id(updatedOrder.getId())
-                .totalAmount(updatedOrder.getTotalAmount())
-                .status(updatedOrder.getStatus())
-                .orderDate(updatedOrder.getOrderDate())
-                .orderItems(itemResponses)
-                .build();
+        return mapToOrderResponse(updatedOrder);
     }
 
     // thanh toán tực tuyến

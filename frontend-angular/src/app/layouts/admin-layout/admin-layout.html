@@ -1,0 +1,88 @@
+<div class="admin-layout">
+  <!-- Sidebar bên trái -->
+  <aside class="sidebar" [class.collapsed]="isCollapsed">
+    <div class="sidebar-header">
+      <span class="logo-text">E-Commerce</span>
+      <span class="logo-icon">EC</span>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="menu-section">QUẢN LÝ</div>
+      <a routerLink="/products" routerLinkActive="active" class="menu-item">
+        <span class="icon">📦</span>
+        <span class="text">Quản lý sản phẩm</span>
+      </a>
+      <a routerLink="/categories" routerLinkActive="active" class="menu-item">
+        <span class="icon">📂</span>
+        <span class="text">Quản lý danh mục</span>
+      </a>
+      <a routerLink="/orders" routerLinkActive="active" class="menu-item">
+        <span class="icon">🛒</span>
+        <span class="text">Quản lý đơn hàng</span>
+      </a>
+
+      <div class="menu-section">HỆ THỐNG</div>
+      <a routerLink="/profile" routerLinkActive="active" class="menu-item">
+        <span class="icon">👤</span>
+        <span class="text">Thông tin tài khoản</span>
+      </a>
+      <a routerLink="/change-password" routerLinkActive="active" class="menu-item">
+        <span class="icon">🔑</span>
+        <span class="text">Đổi mật khẩu</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Khu vực nội dung bên phải -->
+  <main class="main-content">
+    <header class="topbar">
+      <!-- Bên trái: Nút thu gọn menu & Tiêu đề -->
+      <div class="topbar-left">
+        <button class="toggle-btn" (click)="toggleSidebar()" title="Thu gọn/Mở rộng menu">
+          ☰
+        </button>
+        <h3>HỆ THỐNG QUẢN LÝ BÁN HÀNG</h3>
+      </div>
+      
+      <!-- Bên phải: Icon Avatar & Dropdown Menu -->
+      <div class="topbar-right">
+        <div class="user-profile-container">
+          <button class="avatar-btn" (click)="toggleDropdown($event)">
+            <div class="avatar-circle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+            </div>
+          </button>
+
+          <!-- Menu thả xuống -->
+          <div class="dropdown-menu" *ngIf="isDropdownOpen" (click)="$event.stopPropagation()">
+            <div class="dropdown-header">
+              <div class="user-name">{{ userName }}</div>
+              <div class="user-email">{{ userEmail }}</div>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <a routerLink="/profile" class="dropdown-item" (click)="isDropdownOpen = false">
+              <span class="dropdown-icon">👤</span> Thông tin tài khoản
+            </a>
+            <a routerLink="/notifications" class="dropdown-item" (click)="isDropdownOpen = false">
+              <span class="dropdown-icon">📋</span> Đăng ký nhận tin
+            </a>
+
+            <div class="dropdown-divider"></div>
+
+            <button class="dropdown-item logout-item" (click)="logout()">
+              <span class="dropdown-icon">🚪</span> Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+    
+    <div class="content-body">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>

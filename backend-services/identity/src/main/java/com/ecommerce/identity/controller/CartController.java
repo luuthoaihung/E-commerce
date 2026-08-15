@@ -18,11 +18,20 @@ public class CartController {
     private final CartService cartService;
 
     @GetMapping
-public ApiResponse<CartResponse> getMyCart() { // 🌟 Sửa List<CartItem> thành CartResponse
-    return ApiResponse.<CartResponse>builder()
-            .result(cartService.getMyCart())
-            .build();
-}
+    public ApiResponse<CartResponse> getMyCart() {
+        CartResponse cartResponse = cartService.getMyCart();
+        
+        // Kiểm tra nếu danh sách sản phẩm trống thì trả về thông báo "Giỏ hàng trống"
+        String message = (cartResponse.getItems() == null || cartResponse.getItems().isEmpty())
+                ? "Giỏ hàng trống"
+                : "Lấy giỏ hàng thành công";
+
+        return ApiResponse.<CartResponse>builder()
+                .result(cartResponse)
+                .message(message)
+                .build();
+    }
+
 
     @PostMapping("/items")
     public ApiResponse<CartItemResponse> addToCart(@RequestBody @Valid CartItemRequest request) {

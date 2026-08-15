@@ -24,17 +24,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
-    private final ProductMapper productMapper; 
+ 
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping
+    @PostMapping("/add")
     public ApiResponse<ProductResponse> createProduct(@RequestBody @Valid ProductRequest request) {
         return ApiResponse.<ProductResponse>builder()
                 .result(productService.createProduct(request)) // Gọi trực tiếp vì service đã trả về ProductResponse
                 .build();
     }
 
-    @GetMapping
+    @GetMapping("/list")
     public ApiResponse<Page<ProductResponse>> getProducts(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String categoryId,
@@ -55,7 +55,7 @@ public class ProductController {
                 .build();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/info/{id}")
     public ApiResponse<ProductResponse> getProductById(@PathVariable String id) {
         return ApiResponse.<ProductResponse>builder()
                 .result(productService.getProductById(id)) // Gọi trực tiếp
@@ -63,7 +63,7 @@ public class ProductController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}")
+    @PutMapping("/edit/{id}")
     public ApiResponse<ProductResponse> updateProduct(@PathVariable String id, @RequestBody @Valid ProductRequest request) {
         return ApiResponse.<ProductResponse>builder()
                 .result(productService.updateProduct(id, request)) // Gọi trực tiếp
@@ -71,7 +71,7 @@ public class ProductController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public ApiResponse<String> deleteProduct(@PathVariable String id) {
         productService.deleteProduct(id);
         return ApiResponse.<String>builder()
